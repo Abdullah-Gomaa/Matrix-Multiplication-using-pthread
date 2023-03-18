@@ -14,6 +14,7 @@ int colsC = 0;
 int** matrix_A;
 int** matrix_B;
 int** matrix_C;
+int numOfThreads = 0;
 struct args
 {
     int row;
@@ -252,12 +253,15 @@ int main(int argc, char* argv[])
     }
 
 /********************************** Multiplication per matrix *********************************/
-
+    
     // Normal method 
-    pthread_t tid[rowsA][colsB];
+    pthread_t tid[rowsC][colsC];
+    numOfThreads = 0;
+    printf("\nMatrix multiplication:\n");
     gettimeofday(&start, NULL); //start checking time
     //your code goes here
     pthread_create(&tid[0][0], NULL, normalMultiply, NULL);
+    numOfThreads++;
     // Join all threads
     pthread_join(tid[0][0], NULL);
     gettimeofday(&stop, NULL); //end checking time
@@ -287,12 +291,14 @@ int main(int argc, char* argv[])
         }
         fprintf(fnorm, "\n");
     }
+    fprintf(fnorm, "\nMicroseconds taken: %lu\n", stop.tv_usec - start.tv_usec);
+    fprintf(fnorm, "Number of threads: %d\n", numOfThreads);
     fclose(fnorm);
 
 /********************************** Multiplication per row *********************************/
 
     struct args *dims;
-
+    numOfThreads = 0;
     // Multiply matrices using row-wise method
     printf("\nRow-wise multiplication:\n");
 
@@ -302,12 +308,13 @@ int main(int argc, char* argv[])
         dims = malloc(sizeof(struct args));
         dims->row = i;
         pthread_create(&tid[i][0], NULL, rowMultiply, dims);
+        numOfThreads++;
     }
     // Join all threads
     for (int i = 0; i < rowsA; i++) {
         pthread_join(tid[i][0], NULL);
-        free(dims);  
     }
+    free(dims);  
     gettimeofday(&stop, NULL); //end checking time
 
     printf("Seconds taken %lu\n", stop.tv_sec - start.tv_sec);
@@ -336,33 +343,39 @@ int main(int argc, char* argv[])
         }
         fprintf(frow, "\n");
     }
+    fprintf(frow, "\nMicroseconds taken: %lu\n", stop.tv_usec - start.tv_usec);
+    fprintf(frow, "Number of threads: %d\n", numOfThreads);
     fclose(frow);
 
 /********************************** Multiplication per element *********************************/
 
     // Multiply matrices using element-by-element method
     printf("\nelement-by-element multiplication:\n");
-
+    numOfThreads = 0;
     gettimeofday(&start, NULL); //start checking time
     //your code goes here
-    for (int i = 0; i < rowsA; i++)
+    for (int i = 0; i < rowsC; i++)
     {
-        for (int j = 0; j < colsB; j++)
+        for (int j = 0; j < colsC; j++)
         {
             dims = malloc(sizeof(struct args));
             dims->row = i;
-            dims->row = j;
+            dims->col = j;
             pthread_create(&tid[i][j], NULL, elementMultiply, dims);
+            numOfThreads++;
         }
     }
-
+    
     // Join all threads
-    for (int i = 0; i < rowsA; i++) {
-        for (int j = 0; j < colsB; j++) {
+    for (int i = 0; i < rowsC; i++) 
+    {
+        for (int j = 0; j < colsC; j++) 
+        {
             pthread_join(tid[i][j], NULL);
-            free(dims);
         }
     }
+    
+    free(dims);
     gettimeofday(&stop, NULL); //end checking time
 
     printf("Seconds taken %lu\n", stop.tv_sec - start.tv_sec);
@@ -392,6 +405,8 @@ int main(int argc, char* argv[])
         }
         fprintf(felem, "\n");
     }
+    fprintf(felem, "\nMicroseconds taken: %lu\n", stop.tv_usec - start.tv_usec);
+    fprintf(felem, "Number of threads: %d\n", numOfThreads);
     fclose(felem);
     freeMatrices(matrix_A, matrix_B, matrix_C);    
     return 0;
